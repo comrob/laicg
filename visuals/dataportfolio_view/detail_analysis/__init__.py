@@ -1,0 +1,1 @@
+import visuals.dataportfolio_view.detail_analysis.portfolio
