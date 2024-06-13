@@ -57,16 +57,24 @@ class Recordable(ABC):
         self.callback_counter = 0
         self.callback_is_set = False
         self.current_record = {}
+        self.callback_permanent_record = {}
 
     def _callback_on_increment(self):
         if self.callback_is_set:
             self.callback_counter += 1
             if self.callback_counter >= self.callback_period:
                 self.callback_counter = 0
-                self.callback(self.current_record)
+                self.callback(self.callback_permanent_record)
 
     def record(self, key: str, val: VALUE_T):
         self.current_record[key] = val
+        self.callback_permanent_record[key] = val
+
+    @staticmethod
+    def _copy_val(val: VALUE_T) -> VALUE_T:
+        if type(val) is not np.ndarray:
+            return np.asarray(val)
+        return val.copy()
 
     def get_last_record(self) -> RECORD_T:
         pass
@@ -77,7 +85,7 @@ class Recordable(ABC):
     def increment(self):
         self._callback_on_increment()
         self._increment()
-        # self.current_record = {}
+        self.current_record = {}
 
     def save_and_flush(self, wait_for_it=False):
         pass
