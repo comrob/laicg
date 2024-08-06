@@ -11,7 +11,10 @@ import os
 from typing import List
 from visuals import common as C
 from PIL import Image
+from matplotlib.gridspec import GridSpec
 
+COLUMN_WIDTH = 8
+ROW_HEIGHT = COLUMN_WIDTH/4
 
 NEG_POS_CMAP = "coolwarm"
 # NEG_POS_CMAP = "Spectral"
@@ -642,8 +645,352 @@ def _is_rightish(references):
         ret[i] = np.sum(references[i, 0, :]) > 0 and np.sum(references[i, 3, :]) < -0.5
     return ret
 
+def detail(fig: C.FigProvider, p: DecimJournalEvaluation, resutls_path, name):
+    from coupling_evol.agent.components.internal_model.forward_model import get_embeddings_from_mem
 
-def detail(fig: C.FigProvider, p: DecimJournalEvaluation,
+    label_matrix_font_size = 18
+    corner_font_size = 18
+    ticks_font_size = 17
+
+    label_font_size = 14
+    stage_font_size = 12
+    lo_tick_font_size = 13
+
+    models = p.models.data
+    """ Models """
+    derivatives = []
+    for m in models:
+        trg_gaits = m.u_mean
+        granularity = m.phase_n
+        derivative = [m.derivative_gait(trg_gaits, sensory_ph) for sensory_ph in range(granularity)]
+        derivatives.append(np.asarray(derivative))
+
+    motor_id = 6
+    sensor_id = 0
+    plt.rcParams["figure.figsize"] = (COLUMN_WIDTH * 2, ROW_HEIGHT * 3)
+    # plt.rcParams["figure.figsize"] = (COLUMN_WIDTH, ROW_HEIGHT)
+
+    map_fig = fig()
+    axs = C.subplots(map_fig, 2, len(models) + 1, gridspec_kw={
+        'width_ratios': [8] * len(models) + [1],
+        'wspace': 0.1, 'hspace': 0.5
+    })
+    ##
+    PV.ax_generate_colorbar(axs[1][-1], NEG_POS_CMAP, minmax=(-1, 1))
+    PV.ax_generate_colorbar(axs[0][-1], POS_CMAP, minmax=(0, 1))
+    ##
+    abs_d = np.asarray([np.mean(np.abs(d), axis=(0, 3)) for d in derivatives])
+    abs_d = abs_d - np.min(abs_d, axis=(0, 2))[None, :, None]
+    abs_d = abs_d / np.max(abs_d, axis=(0, 2))[None, :, None]
+
+    phph_d = np.asarray([der[:, sensor_id, motor_id, :] for der in derivatives])
+    phph_d -= np.min(phph_d)
+    phph_d /= np.max(phph_d)
+
+    norm = plt.Normalize(vmin=0, vmax=1)
+    # abs_norm = None
+
+    for i in range(len(models)):
+        ax_phph_d = axs[1][i]
+        ax_all_d = axs[0][i]
+
+        #
+        ax_phph_d.matshow(phph_d[i], norm=norm, cmap=plt.cm.get_cmap(NEG_POS_CMAP))
+        ax_phph_d.xaxis.set_ticks_position('bottom')
+        if i == 0:
+            ax_phph_d.set_ylabel("Sensory phase", fontsize=label_matrix_font_size)
+        ax_phph_d.set_yticks([i for i in range(4)])
+        ax_phph_d.set_yticklabels([f"c{i + 1}" for i in range(4)], fontsize=ticks_font_size)
+        # else:
+        #     ax_phph_d.set_yticklabels([])
+
+        label = f"w^{{{SENSORY_LABELS[sensor_id]},c}}_{{{LEG_LABELS[motor_id // 3]}, d}}"
+        ax_phph_d.text(-1, -0.8, r"${}$".format(label), fontsize=corner_font_size)
+
+        ax_phph_d.set_xlabel("Motor phase", fontsize=label_matrix_font_size)
+        ax_phph_d.set_xticks([i for i in range(4)])
+        ax_phph_d.set_xticklabels([f"d {i + 1}" for i in range(4)], fontsize=ticks_font_size)
+
+        #
+        ax_all_d.matshow(abs_d[i][:5, :], norm=norm, cmap=plt.cm.get_cmap(POS_CMAP))
+
+        if i == 0:
+            ax_all_d.set_yticks([i for i, _ in enumerate(SENSORY_LABELS)])
+            ax_all_d.set_yticklabels([lab for lab in SENSORY_LABELS], fontsize=ticks_font_size)
+            ax_all_d.set_ylabel("Sensory modality", fontsize=label_matrix_font_size)
+        else:
+            ax_all_d.set_yticklabels([])
+
+        ax_all_d.set_xticks([i * 3 for i in range(6)])
+        # stage_f.set_xticklabels([event[1] for event in events], rotation=0, ha='center', minor=False)
+        ax_all_d.set_xticklabels([LEG_LABELS[i] for i in range(6)], rotation=-45, ha='left', minor=False, fontsize=ticks_font_size)
+        # ax_all_d.set_xlabel("Motor")
+        ax_all_d.xaxis.set_ticks_position('bottom')
+
+        axs[0][i].set_title(MODEL_STYLES[i].label + " IM", fontsize=label_font_size)
+    ##
+
+    plt.savefig(os.path.join(resutls_path, name + "models.jpg"), bbox_inches='tight')
+    fig.close_all()
+    """Sensory-wise general model selection"""
+
+    offset = 0.1
+    shift = 0.4
+    space = 2
+
+    info_space = 0.4
+    evol_markersize = 10
+    map_markersize = 8
+
+    model_score_band = (0, space)
+    second_score_band = (model_score_band[1] + shift, model_score_band[1] + shift + space)
+    # info_band = (second_score_band[1] + shift, second_score_band[1] + shift + info_space)
+    ylim = (-offset, second_score_band[1] + offset)
+
+    _scenario_phase = p.scenario_switch.data.phase
+    _stages = p.navigation.data.stages
+
+    seg_iter = p.segmented_model_selection.data.iter.astype(int)
+    scenario_phase = _scenario_phase[seg_iter]
+    stages = _stages[seg_iter]
+    seg_n = len(seg_iter)
+    itern_n = len(_scenario_phase)
+    sg_p_it = seg_n / itern_n
+    it_p_sg = itern_n / seg_n
+    # iter_int = seg_iter.astype(dtype=int)
+
+    # ZERO MODEL
+    common_scale = 20
+    _confidence = p.segmented_model_selection.data.best_zero_confidence
+    _confidence = np.mean(_confidence, axis=2)
+    # confidence = np.exp(_confidence)
+    # confidence = -np.tanh(_confidence / (np.std(_confidence, axis=0)[None, :, :]))
+    confidence = np.clip(-_confidence * common_scale, a_min=-0.9, a_max=0.9)
+    # IM MODEL
+    log_odds = p.segmented_model_selection.data.model_logodds
+    prfs = BabblePerformanceAlternation.StageStates.PERFORMANCE_STAGE.get_intervals(stages)
+    """
+    los = np.zeros_like(log_odds) + log_odds[:, 0, :, :][:, None, :, :]
+    for j in range(los.shape[1] - 1):
+        st, en = prfs[j + 1]
+        sgen = int((st + 100) * sg_p_it)
+        los[sgen:, j + 1, :, :] = log_odds[sgen:, j + 1, :, :]
+    # _odds = los[:, 0, :, :] - los[:, 1, :, :]
+    # odds = np.tanh(_odds / (np.std(_odds, axis=0)[None, :, :]))
+    _odds = np.exp(los * 100)
+    odds = _odds[:, 0, :, :] / np.sum(_odds, axis=1) * 2 - 1
+    """
+    odds = np.mean(log_odds[:, 1, :, :] - log_odds[:, 0, :, :], axis=2)
+    st, en = prfs[0]
+    odds[:en] = -1
+    odds = np.clip(odds * common_scale, a_min=-0.9, a_max=0.9)
+    # Draw
+    plt.rcParams["figure.figsize"] = (COLUMN_WIDTH, ROW_HEIGHT * 1.5)
+    ms_fig = fig()
+
+    # sel_labels = [0, 1, 2, 3, 4]
+    sel_labels = [0, 3]
+    # labels = SENSORY_LABELS[sel_labels]
+
+    ts = seg_iter * D_T
+
+    gs = GridSpec(len(sel_labels) + 1, 2, figure=ms_fig, width_ratios=[0.3, 0.6], height_ratios=[1, 3, 3],
+                  wspace=0.1, hspace=0.25)
+    figs = [[ms_fig.add_subplot(gs[i, 1])] for i in range(len(sel_labels) + 1)]
+    map_fig = ms_fig.add_subplot(gs[:, 0])
+
+    # figs = C.subplots(ms_fig, len(sel_labels) + 1, 1, gridspec_kw={'height_ratios': [4] + [10] * len(sel_labels)})
+
+    for i, sel in enumerate(sel_labels):
+        f = figs[i + 1][0]
+        f.plot(ts, 1 + odds[:, sel], color=MODEL_STYLES[1].color, linewidth=2)
+        f.plot(ts, 1 + confidence[:, sel] + second_score_band[0], color=PERFORMING_COLOR, linewidth=2)
+
+        ##
+        PV.fill_boolean(f, scenario_phase == 1., y1=ylim[0], y2=ylim[1], dt=it_p_sg * D_T, color=PARALYSIS_COLOR,
+                        alpha=0.5)
+        PV.fill_boolean(f, stages == int(BabblePerformanceAlternation.StageStates.BABBLING_STAGE.value[0]),
+                        y1=ylim[0], y2=ylim[1], dt=it_p_sg * D_T, color=BABBLING_COLOR, alpha=0.5)
+
+        f.axhline(y=space / 2, color='r', linestyle='--')
+        f.axhline(y=second_score_band[0] + space / 2, color='r', linestyle='--')
+
+        PV.fill_boolean(f, np.asarray([True] * len(scenario_phase)), dt=it_p_sg * D_T, y1=model_score_band[0],
+                        y2=model_score_band[1],
+                        color='k', alpha=0.1)
+        PV.fill_boolean(f, np.asarray([True] * len(scenario_phase)), dt=it_p_sg * D_T, y1=second_score_band[0],
+                        y2=second_score_band[1],
+                        color='k', alpha=0.1)
+        f.spines['right'].set_visible(False)
+        f.spines['left'].set_visible(False)
+        f.spines['top'].set_visible(False)
+        f.spines['bottom'].set_visible(False)
+        f.yaxis.set_ticks_position('right')
+        f.set_yticks([space / 2, second_score_band[0] + space / 2])
+        f.set_yticklabels(["Paralysis IM", "Zero-model"], fontsize=lo_tick_font_size)
+        f.set_ylabel(SENSORY_LABELS[sel], fontsize=lo_tick_font_size)
+        f.set_xlim(np.min(ts), np.max(ts))
+        if i != (len(sel_labels) - 1):
+            f.set_xticks([])
+    figs[-1][0].spines['bottom'].set_visible(True)
+
+    figs[-1][0].set_xlabel(TIME_LABEL, fontsize=label_font_size)
+    ## STAGE
+    stage_f = figs[0][0]
+    # switch = p.scenario_switch.data.phase
+    seg_it = p.segmented_model_selection.data.iter.astype(dtype=int)
+    prfs = BabblePerformanceAlternation.StageStates.BABBLING_STAGE.get_intervals(stages)
+    score_1 = p.segmented_model_selection.data.first_score
+    min_sc = np.min(score_1)
+    score_1f = np.zeros_like(score_1) + min_sc
+    score_1f[:, 0] = score_1[:, 0]
+    for j in range(log_odds.shape[1] - 1):
+        st, en = prfs[j]
+        sgen = int(en * sg_p_it)
+        score_1f[sgen:, j + 1] = score_1[sgen:, j + 1]
+    sel_mod_id = p.segmented_model_selection.data.selected_model
+    ## Draw
+    stage_f.set_xlim(np.min(ts), np.max(ts))
+    stage_f.set_ylim(0, 1)
+    stage_f.yaxis.set_ticks_position('right')
+    stage_f.xaxis.set_ticks_position('top')
+    stage_f.set_yticks([0.5])
+    stage_f.set_yticklabels(['Stage'], fontsize=lo_tick_font_size)
+    stage_f.spines['right'].set_visible(False)
+    stage_f.spines['left'].set_visible(False)
+    stage_f.spines['top'].set_visible(False)
+    stage_f.spines['bottom'].set_visible(False)
+
+    time_path = np.asarray([ts, [0.5] * len(ts)]).T
+
+    PV.fill_boolean(stage_f, _scenario_phase == 1., y1=0, y2=1, dt=D_T, color=PARALYSIS_COLOR, alpha=0.5)
+
+    inner_line_width = 6
+    path_line_width = 3
+
+    seg_location = time_path
+    mod_times = []
+    for i in range(2):
+        _l = np.zeros_like(seg_location) + seg_location
+        _l[sel_mod_id != i, :] = None
+        mod_times.append(_l[:, 0][::20])
+        stage_f.plot(_l[:, 0][::20], _l[:, 1][::20],
+                     linestyle='-', linewidth=inner_line_width,
+                     color=MODEL_STYLES[i].color,
+                     # marker=MODEL_STYLES[i].marker,
+                     label=MODEL_STYLES[i].label + " IM", alpha=0.8)
+
+    PV.draw_staged_path(ax=stage_f,
+                        xy_translation=time_path,
+                        yaw=np.zeros((len(ts),)),
+                        stages=stages,
+                        show_yaw=False,
+                        vector_draw_granularity=2000,
+                        babbling_style={"color": BABBLING_STAGE_STYLE.color, "linestyle": '-', "alpha": 0.8,
+                                        "linewidth": path_line_width},
+                        performing_style={"color": PERFORMING_COLOR, "linestyle": '-', "alpha": 0.8, "linewidth": path_line_width},
+                        )
+    rec_t = ts[scenario_phase == 1.][-1]
+    walkim_t = ts[sel_mod_id == 1]
+    events = [
+        (0, f"{MODEL_STYLES[0].label} IM"),
+        (ts[scenario_phase == 1.][0], "paralysis"),
+        (ts[stages == 1][0], "babbling"),
+        # (mod_times[1][~np.isnan(mod_times[1])][0], "Paralysis IM"),
+        (ts[stages == 1][-1], f"{MODEL_STYLES[1].label} IM"),
+        (rec_t, "recovery"),
+        # (ts[sel_mod_id == 1][-1], f"{MODEL_STYLES[0].label} IM"),
+        (walkim_t[walkim_t > rec_t][-1] + 30, f"{MODEL_STYLES[0].label} IM"),
+    ]
+    [stage_f.axvline(x=event[0], color='k', linestyle='-') for event in events]
+
+    stage_f.set_xticks([event[0] for event in events])
+    stage_f.set_xticklabels([event[1] for event in events], rotation=35, ha='left', minor=False, fontsize=stage_font_size)
+
+    """Map"""
+    location = p.navigation.data.location
+    goal = p.navigation.data.goal
+    heading = p.navigation.data.heading
+    stages = p.navigation.data.stages
+    switch = p.scenario_switch.data.phase
+    score_1 = p.segmented_model_selection.data.first_score
+    seg_it = p.segmented_model_selection.data.iter.astype(dtype=int)
+
+    prfs = BabblePerformanceAlternation.StageStates.BABBLING_STAGE.get_intervals(stages)
+    min_sc = np.min(score_1)
+    score_1f = np.zeros_like(score_1) + min_sc
+    score_1f[:, 0] = score_1[:, 0]
+    for j in range(log_odds.shape[1] - 1):
+        st, en = prfs[j]
+        sgen = int(en * sg_p_it)
+        score_1f[sgen:, j + 1] = score_1[sgen:, j + 1]
+
+    sel_mod_id = np.argmax(score_1f, axis=1)
+    outer_width = 13
+    inner_width = 5
+    path_width = 2
+    # plt.rcParams["figure.figsize"] = (ROW_HEIGHT, ROW_HEIGHT)
+    # map_fig = fig()
+    # axs = V.common.subplots(map_fig, 1, 1)
+    ax = map_fig
+    ax.plot(location[switch == 1, 0], location[switch == 1, 1], '-', color=PARALYSIS_COLOR, linewidth=outer_width,
+            label="paralysis", alpha=0.8)
+    seg_location = location[seg_it, :]
+    for i in range(2):
+        _l = np.zeros_like(seg_location) + seg_location
+        _l[sel_mod_id != i, :] = None
+        ax.plot(_l[:, 0][::200], _l[:, 1][::200],
+                linestyle='-', linewidth=inner_width,
+                color=MODEL_STYLES[i].color,
+                # marker=MODEL_STYLES[i].marker,
+                label=MODEL_STYLES[i].label + " IM", alpha=0.8)
+
+    # ds = np.abs(switch[1:] - switch[:-1])
+    # ax.plot(location[:-1][ds == 1, 0], location[:-1][ds == 1, 1], '^', color=PARALYSIS_COLOR, linewidth=8,
+    #         label="paralysis")
+
+    PV.xy_heading_stages_map(ax, xy_translation=location, xy_goal=goal)
+    PV.draw_staged_path(ax=ax,
+                        xy_translation=location,
+                        yaw=heading,
+                        stages=stages,
+                        show_yaw=False,
+                        vector_draw_granularity=2000,
+                        babbling_style={"color": BABBLING_COLOR, "linestyle": '-', "alpha": 0.8, "linewidth": path_width},
+                        performing_style={"color": PERFORMING_COLOR, "linestyle": '-', "alpha": 0.8, "linewidth": path_width},
+                        )
+    ax.plot(location[-1, 0], location[-1, 1], 'bo', label="reached")
+    ax.set_ylim(-110, 10)
+    ax.set_xlim(-110, 10)
+
+    # axs[0][-1].legend(loc='upper left')
+    ax.set_xlabel(LOCATION_LABELS[0], fontsize=label_font_size)
+    ax.set_ylabel(LOCATION_LABELS[1], fontsize=label_font_size)
+    map_fig.spines['top'].set_visible(False)
+    map_fig.spines['right'].set_visible(False)
+
+
+    plt.savefig(os.path.join(resutls_path, name + "intermodel_competition.png"), bbox_inches='tight')
+    fig.close_all()
+
+
+    # plt.savefig(os.path.join(resutls_path, name + "navigation_detail.pdf"), bbox_inches='tight')
+    ##
+    plt.rcParams["figure.figsize"] = (COLUMN_WIDTH, ROW_HEIGHT)
+    C.standalone_legend(C.plt, [
+        {"color": BABBLING_COLOR, "linestyle": '-', "alpha": 0.8, "label": 'babbling'},
+        {"color": PERFORMING_COLOR, "linestyle": '-', "alpha": 0.8, "label": 'performing'},
+        {"color": 'r', "linestyle": '', "marker": "o", "alpha": 1., "label": 'goal'},
+        {"color": 'b', "linestyle": '', "marker": "o", "alpha": 1., "label": 'reached'},
+        {"color": PARALYSIS_COLOR, "linestyle": '-', "alpha": .5, "label": 'paralysis event', "linewidth": 10},
+        {"color": MODEL_STYLES[0].color, "linestyle": '-', "alpha": 1., "label": MODEL_STYLES[0].label + "IM",
+         "linewidth": 10},
+        {"color": MODEL_STYLES[1].color, "linestyle": '-', "alpha": 1., "label": MODEL_STYLES[1].label + "IM",
+         "linewidth": 10},
+    ])
+    plt.savefig(os.path.join(resutls_path, name + "detail_map_legend.pdf"), bbox_inches='tight')
+
+def _detail(fig: C.FigProvider, p: DecimJournalEvaluation,
            resutls_path, name):
     from coupling_evol.agent.components.internal_model.forward_model import get_embeddings_from_mem
 
@@ -717,6 +1064,7 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation,
     ##
 
     plt.savefig(os.path.join(resutls_path, name + "models.png"), bbox_inches='tight')
+    fig.close_all()
 
     """Sensory-wise general model selection"""
 
@@ -872,6 +1220,7 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation,
     stage_f.set_xticklabels([event[1] for event in events], rotation=0, ha='center', minor=False)
 
     plt.savefig(os.path.join(resutls_path, name + "intermodel_competition.png"), bbox_inches='tight')
+    fig.close_all()
 
     """Gaits"""
     umem = p.uyt_mem.data.command
@@ -942,6 +1291,7 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation,
     gait_fig.colorbar(matxs, cax=cbar_ax)
     ##
     plt.savefig(os.path.join(resutls_path, name + "robot_gait.png"), bbox_inches='tight')
+    fig.close_all()
 
     """Map"""
     location = p.navigation.data.location
@@ -1001,6 +1351,8 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation,
     ax.set_xlabel(LOCATION_LABELS[0])
     ax.set_ylabel(LOCATION_LABELS[1])
     plt.savefig(os.path.join(resutls_path, name + "navigation_detail.png"), bbox_inches='tight')
+    fig.close_all()
+
     ##
     # C.standalone_legend(C.plt, [
     #     {"color": BABBLING_COLOR, "linestyle": '-', "alpha": 0.8, "label": 'babbling'},

@@ -889,8 +889,6 @@ def get_standalone_legends(fig, results_path):
     plt.savefig(os.path.join(results_path, f"correlate_label.png"), bbox_inches='tight')
 
 
-
-
 def generate_portfolio_aggregate(output_path, ps: List[LongevEvaluation],labels: List[str], name=""):
     fig = C.FigProvider()
     path_map_aggregate(fig, output_path, [p.navigation for p in ps], labels, name=name)
@@ -912,26 +910,10 @@ def generate_portfolio_detail(output_path, pa: LongevEvaluation, name="", events
     else:
         time_record = None
 
-    ##
-    # reference_tracking(fig, output_path, name, pa.uyt_mem, pa.models, pa.segmented_model_selection, events=events, fep_signals=fep_signals, vicinity_cut_segment=vicinity_cut_segment)
-    # map_fig(fig, output_path, name, pa.navigation, events=events, vicinity_cut_iter=vicinity_cut_iter)
     joint_evol_map_reference_tracking(fig, output_path, name, pa.uyt_mem.data, pa.models, pa.navigation.data,
                                       fep_signals.data, events=events, time_record=time_record)
-    forward_model_derivatives(fig, output_path, name, pa.models)
-    # fig.show()
     fig.close_all()
-
-
-
-    # relation_video_path = os.path.join(output_path, "relation_video")
-    # os.makedirs(relation_video_path, exist_ok=True)
-    # error_motor_relation_video(
-    #     fig, relation_video_path, name, 
-    #     uyt_mem=pa.uyt_mem,  
-    #     _models=pa.models,
-    #     fep_signals=fep_signals,
-    #     time_record=time_record
-    # )
-    # get_standalone_legends(fig, output_path)
+    forward_model_derivatives(fig, output_path, name, pa.models)
+    fig.close_all()
 
 
