@@ -21,7 +21,7 @@ class ModelCompositionType(Enum):
 
 class LifeCycleConfiguration(FactoryConfiguration[LifeCycleType]):
     def __init__(self, natural_frequency: float, rbf_epsilon: float, babble_iters: int, delta_search_iters: int,
-                 babbling_rate: float):
+                 babbling_rate: float, performance_babble_rate: float):
         super().__init__()
         self.created_type: LifeCycleType = LifeCycleType.MODEL_COMPETITION_DRIVEN
         self.rbf_epsilon = rbf_epsilon
@@ -29,7 +29,7 @@ class LifeCycleConfiguration(FactoryConfiguration[LifeCycleType]):
         self.babble_iters = babble_iters
         self.delta_search_iters = delta_search_iters
         self.start_with_babbling = True
-        self.performance_babble_rate = 0.
+        self.performance_babble_rate = performance_babble_rate
         self.babbling_rate = babbling_rate
 
 

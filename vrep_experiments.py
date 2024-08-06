@@ -127,16 +127,17 @@ def repeated_main():
     overwrite = True
     # overwrite = False
     extract_n_delete = False
-    banner_name = "100624_vrep"
+    banner_name = "040724_vrep"
     # exp_name = "hyp3"
     # exp_name = "pidcmp"
     exp_name = "test"
 
     context_steps = 5
-    trials = [1]
+    trials = [10]
 
     ##
-    transfer_run = "resources/transfer/0906_test"
+    # transfer_run = "resources/transfer/0906_test"
+    transfer_run = "resources/transfer/_walk_only"
     # transfer_run = "resources/transfer/walk_n_paralysis"
     # transfer_run = "resources/transfer/181023_walking"
     # transfer_run = "resources/transfer/080224_vrep" #bootstrapped three models

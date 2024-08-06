@@ -354,7 +354,8 @@ def build_assembly_configuration(clc: ComplexLifecycleConfiguration,
         rbf_epsilon=clc.ep.rbf_epsilon,
         babble_iters=clc.rp.babble_iters,
         delta_search_iters=clc.rp.delta_search_iters,
-        babbling_rate=clc.rp.babbling_rate
+        babbling_rate=clc.rp.babbling_rate,
+        performance_babble_rate=clc.dynamic_lifecycle.performance_babble_rate
     )
     lcc.created_type = clc.dynamic_lifecycle.strategy
     lcc.arguments = clc.dynamic_lifecycle.args

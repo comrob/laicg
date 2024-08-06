@@ -217,7 +217,8 @@ class CoppeliaSimEnvironment(Environment):
         self.relative_pos = np.zeros((3, 6))
         self.session = None
 
-    def _get_ampl(self, ampl_min: np.array, ampl_max: np.array):
+    @staticmethod
+    def _get_ampl(ampl_min: np.array, ampl_max: np.array):
         assert ampl_min.shape == ampl_max.shape == (3,)
         offset = np.tile(((ampl_min + ampl_max) / 2)[:, np.newaxis], (1, 6))
         coef = ampl_max[:, np.newaxis] - offset

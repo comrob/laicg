@@ -20,6 +20,33 @@ class TwoStageScores(ProcessedData):
         self.second_score = rec[E.R_SECOND_STAGE_SCORE]
         self.selected_model = rec[E.R_MODEL_SELECTION]
 
+def sum_by_segments(signal, phase_segments):
+    segment_start = 0
+    current_segment = np.argmax(phase_segments[0, :])
+    ret = []
+    seg = []
+    for i in range(signal.shape[0]):
+        if np.argmax(phase_segments[i, :]) != current_segment:  # and (i > segment_start):
+            ret.append(np.sum(signal[segment_start: i], axis=0))
+            seg.append(phase_segments[segment_start, :])
+            current_segment = np.argmax(phase_segments[i, :])
+            segment_start = i
+    return np.asarray(ret), np.asarray(seg)
+
+
+def fill_non_active_with_prev(segmented_signal, segments, active_phase_id):
+    """
+    Replaces the default value in signal with the last valid value.
+    This is for cases when the record is stored once per gait.
+    """
+    ret = np.zeros_like(segmented_signal)
+    current_value = segmented_signal[0]
+    for i in range(len(segmented_signal)):
+        if segments[i][active_phase_id] == 1:
+            current_value = segmented_signal[i]
+        ret[i] = current_value
+    return ret, segments
+
 
 class SegmentedScores(ProcessedData):
     def __init__(self):
@@ -44,10 +71,18 @@ class SegmentedScores(ProcessedData):
 
         a = rec[postfix_adder(LC_CONST.CPG_PSFX)(CpgRbf.ACTIVATION_NAME)]
 
-        self.first_score, segments = mean_by_segments(rec[E.R_FIRST_STAGE_SCORE], a)
-        self.best_zero_confidence, _ = mean_by_segments(rec[E.R_CONFIDENCE_AGGREGATE],a)
-        self.second_score, _ = mean_by_segments(rec[E.R_SECOND_STAGE_SCORE], a)
-        self.model_logodds, _ = mean_by_segments(rec[E.R_MODEL_LOGODDS], a)
+        # in the estimator competitions, the values are valid only at last phase of the gait.
+        active_phase_id = a.shape[1] - 1
+
+        self.first_score, segments = fill_non_active_with_prev(
+            *sum_by_segments(rec[E.R_FIRST_STAGE_SCORE], a), active_phase_id)
+        self.best_zero_confidence, _ = fill_non_active_with_prev(
+            *sum_by_segments(rec[E.R_CONFIDENCE_AGGREGATE], a), active_phase_id)
+        self.second_score, _ = fill_non_active_with_prev(
+            *sum_by_segments(rec[E.R_SECOND_STAGE_SCORE], a), active_phase_id)
+        self.model_logodds, _ = fill_non_active_with_prev(
+            *sum_by_segments(rec[E.R_MODEL_LOGODDS], a), active_phase_id)
+
         self.iter, _ = mean_by_segments(np.arange(len(a)), a)
         self.selected_model, _ = median_by_segments(rec[E.R_MODEL_SELECTION], a)
         self.segments = segments

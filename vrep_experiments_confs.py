@@ -216,7 +216,7 @@ DYNAMIC_LIFECYCLE_CONFIGS_CHOSEN = {
             .zero_neighbourhood_eps(0.43).set_ensemble_strategy(C.EnsembleDynamicsType.TWO_STAGE_AGGREGATE_ODOMETRYSUM)
             .ensemble_dynamics_score_lr(0.005).log_score_combination(is_log=True).direct_confidence_score(
                 is_direct_confidence=True)
-            .set_performance_babble_rate(0.01).max_performing_periods(1000).model_selection_evaluation_time(10, 20)
+            .set_performance_babble_rate(0.01).max_performing_periods(100000).model_selection_evaluation_time(10, 20)
         ),
 }
 
@@ -330,13 +330,10 @@ LIFECYCLE_CONFIGS = DYNAMIC_LIFECYCLE_CONFIGS_CHOSEN
 # LIFECYCLE_CONFIGS = DYNAMIC_LIFECYCLE_CONFIGS_SUBMODES
 ##
 
-
 # LIFECYCLE_CONFIGS = variate_dlcs_in_configs(LIFECYCLE_CONFIGS)
 # LIFECYCLE_CONFIGS = switch_to_single_model(LIFECYCLE_CONFIGS)
-# LIFECYCLE_CONFIGS = switch_to_reactive_select_model(LIFECYCLE_CONFIGS)
-TARGET_CONFIGS = NAVIGATING_TARGET_FARGOAL
-# TARGET_CONFIGS = NAVIGATING_TARGET_TIMED_DOUBLE_PARALYSIS_FARGOAL
-# TARGET_CONFIGS = NAVIGATING_TARGET_TIMED_SINGLE_PARALYSIS_FARGOAL
-
+LIFECYCLE_CONFIGS = switch_to_reactive_select_model(LIFECYCLE_CONFIGS)
+# TARGET_CONFIGS = NAVIGATING_TARGET_FARGOAL
+TARGET_CONFIGS = NAVIGATING_TARGET_TIMED_DOUBLE_PARALYSIS_FARGOAL
 
 ENVIRONMENT_CONFIGS = ENVIRONMENT_CONFIGS
