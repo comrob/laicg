@@ -960,8 +960,6 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation, resutls_path, name):
                         performing_style={"color": PERFORMING_COLOR, "linestyle": '-', "alpha": 0.8, "linewidth": path_width},
                         )
     ax.plot(location[-1, 0], location[-1, 1], 'bo', label="reached")
-    ax.set_ylim(-110, 10)
-    ax.set_xlim(-110, 10)
 
     # axs[0][-1].legend(loc='upper left')
     ax.set_xlabel(LOCATION_LABELS[0], fontsize=label_font_size)
@@ -989,6 +987,7 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation, resutls_path, name):
          "linewidth": 10},
     ])
     plt.savefig(os.path.join(resutls_path, name + "detail_map_legend.pdf"), bbox_inches='tight')
+
 
 def _detail(fig: C.FigProvider, p: DecimJournalEvaluation,
            resutls_path, name):

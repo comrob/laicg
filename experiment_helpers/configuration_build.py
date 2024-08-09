@@ -1,6 +1,6 @@
 from coupling_evol.agent.components.internal_model import regressors as R
 import numpy as np
-
+import copy
 from coupling_evol.assembler import *
 from coupling_evol.assembler.experiment_assembly import AssemblyConfiguration
 
@@ -311,11 +311,12 @@ class ComplexLifecycleConfiguration(object):
         self.dynamic_lifecycle = dccl
         return self
 
-    def get_max_iters_from_context_steps(self, ctx_num):
-        return (self.rp.babble_iters + self.rp.delta_search_iters + 2) * ctx_num + 1
-
     def use_fep_controller_container(self, use=False):
         self.controller_search_args["use_fep_controller_container"] = use
+        return self
+
+    def set_gait_natural_angvel(self, angvel):
+        self.ep.natural_frequency = angvel
         return self
 
 
@@ -382,7 +383,7 @@ def canonic_life_cycle_configuration() -> ComplexLifecycleConfiguration:
         motor_dimension=4,
         sensory_dimension=4,
         granularity=4,
-        natural_frequency=5.,
+        natural_frequency=6.,
         transgait_window_size=1,
         integration_step_size=0.01,
         rbf_epsilon=1.
@@ -491,3 +492,78 @@ def switch_dynamic_life_cycle_variant(
         pass
 
     return config
+
+
+def get_collection_name(exp_name, lifecycle_config_name, environments_config_name, target_config_name):
+    return f"{exp_name}_lc{lifecycle_config_name}_env{environments_config_name}_trg{target_config_name}"
+
+
+def get_dlc_variant_name_postfix(
+        selection: DLCSelectionVariant, learning_decision: DLCLearningDecisionVariant,
+        composition: DLCCompositionVariant):
+    if selection is selection.ONE_MODEL:
+        return "s1"
+    return f"s{selection.value}d{learning_decision.value}c{composition.value}"
+
+
+def add_variant_postfix(
+        lc_config_root_name,
+        selection: DLCSelectionVariant, learning_decision: DLCLearningDecisionVariant,
+        composition: DLCCompositionVariant):
+    return f"{lc_config_root_name}_V{get_dlc_variant_name_postfix(selection, learning_decision, composition)}"
+
+
+def generate_config_dlc_variations(lc_config_root_name, lc_config: ComplexLifecycleConfiguration):
+    configs = {}
+    for sdc in DLC_VARIANTS:
+        config = copy.deepcopy(lc_config)
+        config.dynamic_lifecycle = switch_dynamic_life_cycle_variant(config.dynamic_lifecycle, *sdc)
+        configs[add_variant_postfix(lc_config_root_name, *sdc)] = config
+    return configs
+
+
+def switch_to_single_model(configs: Dict[str, ComplexLifecycleConfiguration]) -> Dict[
+    str, ComplexLifecycleConfiguration]:
+    expanded_configs = {}
+    for k in configs:
+        config = copy.deepcopy(configs[k])
+        config.dynamic_lifecycle = switch_dynamic_life_cycle_variant(config.dynamic_lifecycle,
+                                                                     DLCSelectionVariant.ONE_MODEL,
+                                                                     DLCLearningDecisionVariant.PURE_SCHEDULED,
+                                                                     DLCCompositionVariant.LEAVE_ORIGINAL)
+        expanded_configs[k] = config
+    return expanded_configs
+
+
+def switch_to_reactive_select_model(configs: Dict[str, ComplexLifecycleConfiguration]) -> Dict[
+    str, ComplexLifecycleConfiguration]:
+    expanded_configs = {}
+    for k in configs:
+        config = copy.deepcopy(configs[k])
+        config.dynamic_lifecycle = switch_dynamic_life_cycle_variant(config.dynamic_lifecycle,
+                                                                     DLCSelectionVariant.REACTIVE,
+                                                                     DLCLearningDecisionVariant.PURE_REACTIVE,
+                                                                     DLCCompositionVariant.LEAVE_ORIGINAL)
+        expanded_configs[k] = config
+    return expanded_configs
+
+
+def switch_to_scheduled_learn_reactive_select_model(configs: Dict[str, ComplexLifecycleConfiguration]) -> Dict[
+    str, ComplexLifecycleConfiguration]:
+    expanded_configs = {}
+    for k in configs:
+        config = copy.deepcopy(configs[k])
+        config.dynamic_lifecycle = switch_dynamic_life_cycle_variant(config.dynamic_lifecycle,
+                                                                     DLCSelectionVariant.REACTIVE,
+                                                                     DLCLearningDecisionVariant.PURE_SCHEDULED,
+                                                                     DLCCompositionVariant.LEAVE_ORIGINAL)
+        expanded_configs[k] = config
+    return expanded_configs
+
+
+def variate_dlcs_in_configs(configs: Dict[str, ComplexLifecycleConfiguration]) -> Dict[
+    str, ComplexLifecycleConfiguration]:
+    expanded_configs = {}
+    for k in configs:
+        expanded_configs = {**expanded_configs, **generate_config_dlc_variations(k, configs[k])}
+    return expanded_configs

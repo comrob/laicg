@@ -6,10 +6,12 @@
 #     from hexapod_sim.robot_consts import *
 #     from environment import *
 # else:
+import numpy as np
+
 from coupling_evol.environments.coppeliasim.hexapod_sim.robot_consts import *
 from coupling_evol.engine.environment import *
 from coupling_evol.environments.utils.filter import *
-
+from typing import List, Union
 import coupling_evol.data_process.inprocess.recorder as rlog
 from coupling_evol.engine import common as C
 # REC = rlog.get_recorder(C.RecordNamespace.SENSORY_SOURCE.key)
@@ -210,9 +212,11 @@ class CoppeliaSimSession(Session):
 
 class CoppeliaSimEnvironment(Environment):
     def __init__(self,
-                 ampl_min: np.ndarray,
-                 ampl_max: np.ndarray):
+                 ampl_min: Union[np.ndarray, List[float]],
+                 ampl_max: Union[np.ndarray, List[float]]):
         super().__init__()
+        ampl_min = np.asarray(ampl_min)
+        ampl_max = np.asarray(ampl_max)
         self.scale, self.offset = self._get_ampl(ampl_min, ampl_max)
         self.relative_pos = np.zeros((3, 6))
         self.session = None

@@ -2,6 +2,7 @@ import logging
 
 from coupling_evol.data_process.postprocess.lifecycle_data import LifeCycleRawData
 from vrep_experiments_confs import *
+from experiment_helpers.configuration_build import get_collection_name
 from coupling_evol.data_process.postprocess.permanent_post_processing import helpers as PPP_H, data_portfolios
 from visuals import image_merger
 

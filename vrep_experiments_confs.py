@@ -1,10 +1,13 @@
 import copy
 from coupling_evol.assembler import ProviderConfiguration
-import configuration_build as C
-from configuration_build import GoalType, EnvironmentType
+from experiment_helpers import configuration_build as C
+from experiment_helpers.configuration_build import GoalType, EnvironmentType
+from coupling_evol.engine.environment import Environment
 from typing import Dict
 import os
 import re
+STEP_SLEEP = 0.01
+GAIT_ANGULAR_VELOCITY = 6.
 
 MOTOR_DIMENSION = 18
 EFFORT_IN_RAW = True
@@ -58,107 +61,16 @@ def create_provider_configuration(goal_type: GoalType, target_args: dict):
     return pc
 
 
-def get_collection_name(exp_name, lifecycle_config_name, environments_config_name, target_config_name):
-    return f"{exp_name}_lc{lifecycle_config_name}_env{environments_config_name}_trg{target_config_name}"
+def get_environment(env_type: EnvironmentType, args) -> Environment:
+    if env_type is EnvironmentType.DUMMY:
+        from coupling_evol.engine.environment import DummyEnvironment
+        return DummyEnvironment(u_dim=MOTOR_DIMENSION, y_dim=SENSORY_DIMENSION)
 
-
-def parse_trial(name: str) -> str:
-    res = TRIAL_MATCH.search(name)
-    if res is None:
-        raise ValueError(f"No trial indicator in: {name}")
-    return res.group(1)
-
-
-def parse_lifecycle(name: str) -> str:
-    res = LIFECYCLE_MATCH.search(name)
-    if res is None:
-        raise ValueError(f"No lifecycle indicator in: {name}")
-    return res.group(1)
-
-
-def parse_scenario(name: str) -> str:
-    res = SCENARIO_MATCH.search(name)
-    if res is None:
-        raise ValueError(f"No scenario indicator in: {name}")
-    return res.group(1)
-
-
-def parse_environment(name: str) -> str:
-    res = ENVIRONMENT_MATCH.search(name)
-    if res is None:
-        raise ValueError(f"No environment indicator in: {name}")
-    return res.group(1)
-
-
-def get_dlc_variant_name_postfix(
-        selection: C.DLCSelectionVariant, learning_decision: C.DLCLearningDecisionVariant,
-        composition: C.DLCCompositionVariant):
-    if selection is selection.ONE_MODEL:
-        return "s1"
-    return f"s{selection.value}d{learning_decision.value}c{composition.value}"
-
-
-def add_variant_postfix(
-        lc_config_root_name,
-        selection: C.DLCSelectionVariant, learning_decision: C.DLCLearningDecisionVariant,
-        composition: C.DLCCompositionVariant):
-    return f"{lc_config_root_name}_V{get_dlc_variant_name_postfix(selection, learning_decision, composition)}"
-
-
-def generate_config_dlc_variations(lc_config_root_name, lc_config: C.ComplexLifecycleConfiguration):
-    configs = {}
-    for sdc in C.DLC_VARIANTS:
-        config = copy.deepcopy(lc_config)
-        config.dynamic_lifecycle = C.switch_dynamic_life_cycle_variant(config.dynamic_lifecycle, *sdc)
-        configs[add_variant_postfix(lc_config_root_name, *sdc)] = config
-    return configs
-
-
-def switch_to_single_model(configs: Dict[str, C.ComplexLifecycleConfiguration]) -> Dict[
-    str, C.ComplexLifecycleConfiguration]:
-    expanded_configs = {}
-    for k in configs:
-        config = copy.deepcopy(configs[k])
-        config.dynamic_lifecycle = C.switch_dynamic_life_cycle_variant(config.dynamic_lifecycle,
-                                                                       C.DLCSelectionVariant.ONE_MODEL,
-                                                                       C.DLCLearningDecisionVariant.PURE_SCHEDULED,
-                                                                       C.DLCCompositionVariant.LEAVE_ORIGINAL)
-        expanded_configs[k] = config
-    return expanded_configs
-
-
-def switch_to_reactive_select_model(configs: Dict[str, C.ComplexLifecycleConfiguration]) -> Dict[
-    str, C.ComplexLifecycleConfiguration]:
-    expanded_configs = {}
-    for k in configs:
-        config = copy.deepcopy(configs[k])
-        config.dynamic_lifecycle = C.switch_dynamic_life_cycle_variant(config.dynamic_lifecycle,
-                                                                       C.DLCSelectionVariant.REACTIVE,
-                                                                       C.DLCLearningDecisionVariant.PURE_REACTIVE,
-                                                                       C.DLCCompositionVariant.LEAVE_ORIGINAL)
-        expanded_configs[k] = config
-    return expanded_configs
-
-
-def switch_to_scheduled_learn_reactive_select_model(configs: Dict[str, C.ComplexLifecycleConfiguration]) -> Dict[
-    str, C.ComplexLifecycleConfiguration]:
-    expanded_configs = {}
-    for k in configs:
-        config = copy.deepcopy(configs[k])
-        config.dynamic_lifecycle = C.switch_dynamic_life_cycle_variant(config.dynamic_lifecycle,
-                                                                       C.DLCSelectionVariant.REACTIVE,
-                                                                       C.DLCLearningDecisionVariant.PURE_SCHEDULED,
-                                                                       C.DLCCompositionVariant.LEAVE_ORIGINAL)
-        expanded_configs[k] = config
-    return expanded_configs
-
-
-def variate_dlcs_in_configs(configs: Dict[str, C.ComplexLifecycleConfiguration]) -> Dict[
-    str, C.ComplexLifecycleConfiguration]:
-    expanded_configs = {}
-    for k in configs:
-        expanded_configs = {**expanded_configs, **generate_config_dlc_variations(k, configs[k])}
-    return expanded_configs
+    elif env_type is EnvironmentType.SIMULATION:
+        from coupling_evol.environments.coppeliasim import coppeliasim_environment as SIM_ENV
+        return SIM_ENV.CoppeliaSimEnvironment(ampl_min=[-0.32, 0.2, -0.2], ampl_max=[0.32, 0.7, 0.3])
+    else:
+        raise NotImplemented(f"Environment {env_type} option is not implemented.")
 
 
 ENVIRONMENT_CONFIGS = {
@@ -183,7 +95,7 @@ DYNAMIC_LIFECYCLE_CONFIGS_SUBMODES = {
             .zero_neighbourhood_eps(0.01).set_ensemble_strategy(C.EnsembleDynamicsType.SUBMODES)
             .ensemble_dynamics_score_lr(0.005).log_score_combination(is_log=True)
             .set_performance_babble_rate(0.01).max_performing_periods(10000).model_selection_evaluation_time(10, 30)
-        ),
+        ).set_step_sleep(STEP_SLEEP).set_gait_natural_angvel(GAIT_ANGULAR_VELOCITY),
 }
 
 DYNAMIC_LIFECYCLE_CONFIGS_CHOSEN = {
@@ -217,7 +129,7 @@ DYNAMIC_LIFECYCLE_CONFIGS_CHOSEN = {
             .ensemble_dynamics_score_lr(0.005).log_score_combination(is_log=True).direct_confidence_score(
                 is_direct_confidence=True)
             .set_performance_babble_rate(0.01).max_performing_periods(100000).model_selection_evaluation_time(10, 20)
-        ),
+        ).set_step_sleep(STEP_SLEEP).set_gait_natural_angvel(GAIT_ANGULAR_VELOCITY).set_target_error_processing(typ=2),
 }
 
 
@@ -332,7 +244,7 @@ LIFECYCLE_CONFIGS = DYNAMIC_LIFECYCLE_CONFIGS_CHOSEN
 
 # LIFECYCLE_CONFIGS = variate_dlcs_in_configs(LIFECYCLE_CONFIGS)
 # LIFECYCLE_CONFIGS = switch_to_single_model(LIFECYCLE_CONFIGS)
-LIFECYCLE_CONFIGS = switch_to_reactive_select_model(LIFECYCLE_CONFIGS)
+LIFECYCLE_CONFIGS = C.switch_to_reactive_select_model(LIFECYCLE_CONFIGS)
 # TARGET_CONFIGS = NAVIGATING_TARGET_FARGOAL
 TARGET_CONFIGS = NAVIGATING_TARGET_TIMED_DOUBLE_PARALYSIS_FARGOAL
 

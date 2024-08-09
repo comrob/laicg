@@ -140,14 +140,15 @@ def draw_staged_path(ax: C.plt.Axes, xy_translation: np.ndarray,
 
 def xy_heading_stages_map(
         ax: C.plt.Axes, xy_translation: np.ndarray, xy_goal: np.ndarray):
-    furthest_dim = max(np.max(np.abs(xy_goal)), np.max(np.abs(xy_translation)))
-    bound = furthest_dim * 1.1
+    xy_minmax = np.min(xy_translation, axis=0), np.max(xy_translation, axis=0)
+    xy_diff = (xy_minmax[1] - xy_minmax[0]) * 0.1
     map_fig = ax
     map_fig.axhline(y=0., color='r', linestyle='--', alpha=0.1)
     map_fig.axvline(x=0., color='r', linestyle='--', alpha=0.1)
+    map_fig.grid(visible=True)
     map_fig.plot(xy_goal[:, 0], xy_goal[:, 1], 'ro', label='goal')
-    map_fig.set_ylim(-bound, bound)
-    map_fig.set_xlim(-bound, bound)
+    map_fig.set_ylim(xy_minmax[0][1] - xy_diff[1], xy_minmax[1][1] + xy_diff[1])
+    map_fig.set_xlim(xy_minmax[0][0] - xy_diff[0], xy_minmax[1][0] + xy_diff[0])
 
 
 def draw_staged_evol(ax: C.plt.Axes, y: np.ndarray,
