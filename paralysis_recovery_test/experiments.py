@@ -5,7 +5,6 @@ from paralysis_recovery_test.configuration import *
 from experiment_helpers.configuration_build import *
 from experiment_helpers.configuration_run import *
 import re
-from visuals.dataportfolio_view.decim_journal_evaluation.portfolio import generate_detail as generate_portfolio_decim
 import enum
 ###
 LOG = logging.getLogger(__name__)
@@ -30,17 +29,8 @@ def extract_data_portfolio(banner_name, collection_name):
         os.makedirs(collection_extract_path)
     lcrd = LifeCycleRawData(results_path, collection_name)
     data_portfolios.LongevEvaluation(collection_extract_path).process_and_save(lcrd)
-
-
-def render_visual_portfolio(banner_name, collection_name):
-    extract_dir = os.path.join(EXTRACT_PATH, banner_name)
-    collection_extract_path = os.path.join(extract_dir, collection_name)
-    visuals_dir = os.path.join(VISUALS_PATH, banner_name)
-    visuals_path = os.path.join(visuals_dir, collection_name)
-    if not os.path.exists(visuals_path):
-        os.makedirs(visuals_path)
-    dp = data_portfolios.LongevEvaluation(collection_extract_path)
-    generate_portfolio_decim(output_path=visuals_path, dp=dp, name="")
+    ##
+    shutil.rmtree(os.path.join(RECORD_PATH, banner_name, collection_name))
 
 
 def _get_lowest_confidence(banner_name, collection_name, cut_from=400):
@@ -84,7 +74,7 @@ def prepare_transfer(banner_name, collection_name):
             furthest_model = model_id
     model_name = f"{furthest_model}_fwm"
     new_model_name = "1_fwm"
-    shutil.copytree(os.path.join(ensemble_path, model_name), os.path.join(ensemble_transfer_path, new_model_name))
+    shutil.copytree(os.path.join(ensemble_path, model_name), os.path.join(ensemble_transfer_path, new_model_name), dirs_exist_ok=True)
 
 
 def transfer_ensemble_controller_paths(transfer_banner_name):
@@ -126,7 +116,7 @@ def parametrized_run(banner_name, collection_name,
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
-    threshold = 0
+    threshold = None
     if undisturbed_measurement_banner_name is not None:
         threshold = threshold_from_undisturbed_walk_experiment(undisturbed_measurement_banner_name)
 
@@ -156,7 +146,7 @@ def train_walking_model_experiment(banner_name, context_steps=5, overwrite=False
                      overwrite=overwrite, undisturbed_measurement_banner_name=None)
     prepare_transfer(banner_name=banner_name, collection_name=collection_name)
     extract_data_portfolio(banner_name, collection_name)
-    # render_visual_portfolio(banner_name, collection_name)
+    return True
 
 
 def undisturbed_walking_experiment(banner_name, transfer_banner_name, context_steps=3, overwrite=False):
@@ -165,7 +155,7 @@ def undisturbed_walking_experiment(banner_name, transfer_banner_name, context_st
                      variant=Variant.SINGLE_MODEL, transfer_banner_name=transfer_banner_name, context_steps=context_steps,
                      overwrite=overwrite, undisturbed_measurement_banner_name=None)
     extract_data_portfolio(banner_name, collection_name)
-    # render_visual_portfolio(banner_name, collection_name)
+    return True
 
 
 def paralysis_and_recovery_experiment(banner_name, collection_name, transfer_banner_name,
@@ -175,15 +165,9 @@ def paralysis_and_recovery_experiment(banner_name, collection_name, transfer_ban
                      variant=variant, transfer_banner_name=transfer_banner_name, context_steps=context_steps,
                      overwrite=overwrite, undisturbed_measurement_banner_name=undisturbed_measurement_banner_name)
     extract_data_portfolio(banner_name, collection_name)
-    render_visual_portfolio(banner_name, collection_name)
+    return True
 
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p', level=logging.INFO)
-    # train_walking_model_experiment("c")
-    # single_model_walk("a", "a")
-    paralysis_and_recovery_experiment("c", "usual2",
-                                      transfer_banner_name="c", undisturbed_measurement_banner_name="c",
-                                      variant=Variant.REACTIVE)
-    # undisturbed_walking_experiment("c", transfer_banner_name="c")
-    # print(_get_lowest_confidence("c", UNDISTURBED_COLLECTION_NAME))
+

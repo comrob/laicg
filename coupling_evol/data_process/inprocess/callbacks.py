@@ -68,3 +68,28 @@ def competing_fep_callback(d: RECORD_T):
           f"| pos: [{xyz[0]:1.1f},{xyz[1]:1.1f};{rpy[2]:1.1f}] g:[{goal[0]:1.1f},{goal[1]:1.1f}]"
           f"| mod:{sel_model:2d} sc2:{sec_stage_score:1.3f}({aggr_score:1.3f})"
           )
+
+
+def short_callback(d: RECORD_T):
+    if len(d) == 0:
+        return
+    ctrl = pref_post_cmb(d, RN.LIFE_CYCLE, lc_ctr)
+    lcy = pref_post_cmb(d, RN.LIFE_CYCLE, none)
+    exe = pref_post_cmb(d, RN.EXECUTOR, none)
+    trge = pref_post_cmb(d, RN.TARGET_PROVIDER, none)
+    t = exe(R_T, 0.)
+    performance_error = ctrl(FEP_CTR.ERR_PERFORMANCE, 0.)
+
+    xyz = trge(R_POS_XYZ, np.zeros(3, ))
+    rpy = trge(R_POS_RPY, np.zeros(3, ))
+    goal = trge(R_GOAL_XY, np.zeros(2, ))
+
+    target_parameter = EmbeddedTargetParameter.read_from_record(d, RN.LIFE_CYCLE(ES_LC.R_TARGET))
+    sec_stage_score = lcy(TSAGS_CM.R_SECOND_STAGE_SCORE, 0.)
+    sel_model = lcy(TSAGS_CM.R_MODEL_SELECTION, 0)
+    print(f"T {t:5.0f}"
+          f"| perf_mse:[{performance_error:3.3f}]"
+          f"| pos:[{xyz[0]:4.1f},{xyz[1]:4.1f}]m yaw:[{rpy[2]:2.1f}]rad"
+          f"| goal:[{goal[0]:4.1f},{goal[1]:4.1f}]m"
+          f"| selected_model:[{sel_model:2d}] zero-model:[{-sec_stage_score:1.3f}]"
+          )

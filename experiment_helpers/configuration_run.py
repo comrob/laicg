@@ -30,7 +30,7 @@ def prepare_and_run_experiment_executor(ac: EE_H.AssemblyConfiguration,
         clean_files=not overwrite, transferred_ensemble_path=transferred_ensemble_path,
         transferred_controller_path=transferred_controller_path
     )
-    rlog.set_callback(callbacks.competing_fep_callback, callback_period=500)
+    rlog.set_callback(callbacks.short_callback, callback_period=500)
 
     ee.run(max_iters=ac.experiment_setup_parameters.max_iters,
            d_t=ac.essential_parameters.integration_step_size,

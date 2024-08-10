@@ -14,10 +14,10 @@ if EFFORT_IN_RAW is True:
 else:
     SENSORY_DIMENSION = 5
 
-RECORD_PATH = os.path.join("results", "data")
+RECORD_PATH = os.path.join("results", "tmp")
 TRANSFER_PATH = os.path.join("results", "transfer")
 EXTRACT_PATH = os.path.join("results", "extract")
-VISUALS_PATH = os.path.join("results", "visuals")
+REPORT_PATH = os.path.join("results", "reports")
 
 if not os.path.exists("results"):
     os.mkdir("results")
@@ -27,8 +27,8 @@ if not os.path.exists(TRANSFER_PATH):
     os.mkdir(TRANSFER_PATH)
 if not os.path.exists(EXTRACT_PATH):
     os.mkdir(EXTRACT_PATH)
-if not os.path.exists(VISUALS_PATH):
-    os.mkdir(VISUALS_PATH)
+if not os.path.exists(REPORT_PATH):
+    os.mkdir(REPORT_PATH)
 
 WALK_LEARNING_COLLECTION_NAME = "walk_learning"
 WALK_TRANSFER_COLLECTION_NAME = "walk_only"

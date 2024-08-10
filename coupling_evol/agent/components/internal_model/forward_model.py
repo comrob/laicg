@@ -289,7 +289,7 @@ class MultiPhaseModel:
         manifesto = ""
         with open(os.path.join(dict_path, "manifesto.yaml"), "r") as file:
             manifesto = yaml.load(file, Loader=yaml.FullLoader)
-        print("Loading {} with manifesto: {}".format(dict_path, manifesto))
+        # print("Loading {} with manifesto: {}".format(dict_path, manifesto))
 
         ##
 
