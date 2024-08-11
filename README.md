@@ -5,7 +5,7 @@ The implemented method [1] dynamically selects and expands ensemble of internal 
 This experiment demonstrates the method's capability to continually learn the sensorimotor interaction in changing environment.
 
 ## Install
-The software is tested on [Ubuntu 20.4.](https://releases.ubuntu.com/20.04/) To run the experiments the python libraries and the simulator must be installed:
+The software is tested on [Ubuntu 20.4.](https://releases.ubuntu.com/20.04/). To run the experiments the python libraries and the simulator must be installed:
 
 1. The software requires [Python 3.8.0](https://www.python.org/) with packages listed in *requirements.txt* file. To install the requirements run:
 ```setup
@@ -24,7 +24,6 @@ tar -xf CoppeliaSim_Player_V4_6_0_rev18_Ubuntu20_04.tar.xz
 cd CoppeliaSim_Player_V4_6_0_rev18_Ubuntu20_04
 ./coppeliaSim
 ```
-
 ## Running the experiment
 Runs a paralysis and recovery experiment with prelearned walking model.
 1. Open the scene *resources/coppeliasim/_plane.ttt* in the CoppeliaSim.
@@ -33,6 +32,7 @@ Runs a paralysis and recovery experiment with prelearned walking model.
 python -m paralysis_recovery_test.run my_new_experiment test --transfer example
 python -m paralysis_recovery_test.run my_new_experiment eval
 ```
+> After the experiment, the collected data are postprocessed, which can require up to 8GB RAM.
 
 ## Training the model
 Runs the entire pipeline which learns walking model, tunes the sensitivity threshold. 
@@ -45,7 +45,7 @@ python -m paralysis_recovery_test.run my_new_experiment tune
 python -m paralysis_recovery_test.run my_new_experiment test
 python -m paralysis_recovery_test.run my_new_experiment eval
 ```
-
+> If 'AssertionError: Conection to hexapodfailed' appears, restart the simulator.
 ### Evaluation
 The **eval** command generates files in *paralysis_recovery_test/results/reports*.
 1. On the right, log-odds evolution ( zero-model:best model (black), paralysis:walking (cyan)) where the value lesser than zero (below the red dash line) indicates that the former is less likely than the latter. On the left, the result path of robot going towards goal location [-100,-100].

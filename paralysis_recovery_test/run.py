@@ -55,7 +55,6 @@ def process_parse(args):
             variant=Variant.REACTIVE, undisturbed_measurement_banner_name=threshold_banner, context_steps=5,
             overwrite=True)
     elif args.action_type == EVALUATE_BANNER:
-        assert_walk_model(transfer_banner)
         return create_report(target_banner)
 
 
