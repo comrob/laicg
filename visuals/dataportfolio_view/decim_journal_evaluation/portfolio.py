@@ -38,8 +38,9 @@ BABBLING_STAGE_STYLE = Style('babble', color=BABBLING_COLOR, marker='s')
 
 MODEL_COLORS = ['darkorange', 'fuchsia', 'g', 'r', 'y', 'darkviolet', 'orangered', 'peru', 'springgreen']
 MODEL_MARKERS = ["^", "v", "o", "s", "x"]
+MODEL_NAMES = ["Walking", "Paralysis"] + [f"Model{i+2}" for i in range(6)]
 MODEL_STYLES = [
-    Style(str(i), color=MODEL_COLORS[i%len(MODEL_COLORS)], marker=MODEL_MARKERS[i%len(MODEL_MARKERS)])
+    Style(str(MODEL_NAMES[i]), color=MODEL_COLORS[i%len(MODEL_COLORS)], marker=MODEL_MARKERS[i%len(MODEL_MARKERS)])
     for i in range(8)
 ]
 
@@ -231,10 +232,10 @@ def error_figs(fig: C.FigProvider, pa: PortfolioAggregate[DecimJournalEvaluation
                   ts=ts, mean_window=100, time_label=TIME_LABEL, legend_on=False, has_first=False, has_last=True
                   )
 
-    plt.savefig(os.path.join(resutls_path, name + "metric_comparison.png"), bbox_inches='tight')
+    plt.savefig(os.path.join(resutls_path, name + "metric_comparison.jpg"), bbox_inches='tight')
     # C.standalone_legend(C.plt,
     #                     [{"linestyle": '-', "color": styles[ll].color, "label": styles[ll].label} for ll in lc_labels])
-    # plt.savefig(os.path.join(resutls_path, name + "comparison_legend.png"), bbox_inches='tight')
+    # plt.savefig(os.path.join(resutls_path, name + "comparison_legend.jpg"), bbox_inches='tight')
 
 
 def map_fig(fig: C.FigProvider, pa: PortfolioAggregate[DecimJournalEvaluation],
@@ -289,7 +290,7 @@ def map_fig(fig: C.FigProvider, pa: PortfolioAggregate[DecimJournalEvaluation],
             axs[0][i].set_yticklabels([])
         axs[0][i].set_xlabel(LOCATION_LABELS[0])
     axs[0][0].set_ylabel(LOCATION_LABELS[1])
-    plt.savefig(os.path.join(resutls_path, name + "navigation.png"), bbox_inches='tight')
+    plt.savefig(os.path.join(resutls_path, name + "navigation.jpg"), bbox_inches='tight')
 
 
 def get_first_model_activation_time(t, selected_model, scenario_phase):
@@ -594,12 +595,12 @@ def model_selection_comparison(fig: C.FigProvider, pa: PortfolioAggregate[DecimJ
         # ax_map.spines['bottom'].set_visible(False)
         # ax_map.spines['left'].set_visible(False)
 
-        img_path = os.path.join(resutls_path, name + f"life_cycle_stages_{styles[lifecycle].label}.png")
+        img_path = os.path.join(resutls_path, name + f"life_cycle_stages_{styles[lifecycle].label}.jpg")
         plt.savefig(img_path, bbox_inches='tight')
         img_paths.append(img_path)
 
     agg_img = vertical_merge_images([Image.open(pth) for pth in img_paths])
-    agg_img.save(os.path.join(resutls_path, name + f"life_cycle_stages.png"))
+    agg_img.save(os.path.join(resutls_path, name + f"life_cycle_stages.jpg"))
     # """LEGEND"""
     # fig()
     # C.standalone_legend(C.plt, [
@@ -615,7 +616,7 @@ def model_selection_comparison(fig: C.FigProvider, pa: PortfolioAggregate[DecimJ
     #     {"color": 'b', "linestyle": '', "marker": "o", "alpha": 1., "label": 'reached'},
     #     # {"color": 'b', "linestyle": '', "marker": "o", "alpha": 1., "label": 'reached'},
     # ])
-    # plt.savefig(os.path.join(resutls_path, name + "mini_map_legend.png"), bbox_inches='tight')
+    # plt.savefig(os.path.join(resutls_path, name + "mini_map_legend.jpg"), bbox_inches='tight')
 
 
 def _is_any(references):
@@ -671,12 +672,12 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation, resutls_path, name):
     # plt.rcParams["figure.figsize"] = (COLUMN_WIDTH, ROW_HEIGHT)
 
     map_fig = fig()
-    axs = C.subplots(map_fig, 2, len(models) + 1, gridspec_kw={
+    axs = C.subplots(map_fig, 1, len(models) + 1, gridspec_kw={
         'width_ratios': [8] * len(models) + [1],
         'wspace': 0.1, 'hspace': 0.5
     })
     ##
-    PV.ax_generate_colorbar(axs[1][-1], NEG_POS_CMAP, minmax=(-1, 1))
+    # PV.ax_generate_colorbar(axs[1][-1], NEG_POS_CMAP, minmax=(-1, 1))
     PV.ax_generate_colorbar(axs[0][-1], POS_CMAP, minmax=(0, 1))
     ##
     abs_d = np.asarray([np.mean(np.abs(d), axis=(0, 3)) for d in derivatives])
@@ -691,25 +692,25 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation, resutls_path, name):
     # abs_norm = None
 
     for i in range(len(models)):
-        ax_phph_d = axs[1][i]
+        # ax_phph_d = axs[1][i]
         ax_all_d = axs[0][i]
 
         #
-        ax_phph_d.matshow(phph_d[i], norm=norm, cmap=plt.cm.get_cmap(NEG_POS_CMAP))
-        ax_phph_d.xaxis.set_ticks_position('bottom')
-        if i == 0:
-            ax_phph_d.set_ylabel("Sensory phase", fontsize=label_matrix_font_size)
-        ax_phph_d.set_yticks([i for i in range(4)])
-        ax_phph_d.set_yticklabels([f"c{i + 1}" for i in range(4)], fontsize=ticks_font_size)
+        # ax_phph_d.matshow(phph_d[i], norm=norm, cmap=plt.cm.get_cmap(NEG_POS_CMAP))
+        # ax_phph_d.xaxis.set_ticks_position('bottom')
+        # if i == 0:
+        #     ax_phph_d.set_ylabel("Sensory phase", fontsize=label_matrix_font_size)
+        # ax_phph_d.set_yticks([i for i in range(4)])
+        # ax_phph_d.set_yticklabels([f"c{i + 1}" for i in range(4)], fontsize=ticks_font_size)
         # else:
         #     ax_phph_d.set_yticklabels([])
 
-        label = f"w^{{{SENSORY_LABELS[sensor_id]},c}}_{{{LEG_LABELS[motor_id // 3]}, d}}"
-        ax_phph_d.text(-1, -0.8, r"${}$".format(label), fontsize=corner_font_size)
-
-        ax_phph_d.set_xlabel("Motor phase", fontsize=label_matrix_font_size)
-        ax_phph_d.set_xticks([i for i in range(4)])
-        ax_phph_d.set_xticklabels([f"d {i + 1}" for i in range(4)], fontsize=ticks_font_size)
+        # label = f"w^{{{SENSORY_LABELS[sensor_id]},c}}_{{{LEG_LABELS[motor_id // 3]}, d}}"
+        # ax_phph_d.text(-1, -0.8, r"${}$".format(label), fontsize=corner_font_size)
+        #
+        # ax_phph_d.set_xlabel("Motor phase", fontsize=label_matrix_font_size)
+        # ax_phph_d.set_xticks([i for i in range(4)])
+        # ax_phph_d.set_xticklabels([f"d {i + 1}" for i in range(4)], fontsize=ticks_font_size)
 
         #
         ax_all_d.matshow(abs_d[i][:5, :], norm=norm, cmap=plt.cm.get_cmap(POS_CMAP))
@@ -968,7 +969,7 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation, resutls_path, name):
     map_fig.spines['right'].set_visible(False)
 
 
-    plt.savefig(os.path.join(resutls_path, name + "intermodel_competition.png"), bbox_inches='tight')
+    plt.savefig(os.path.join(resutls_path, name + "intermodel_competition.jpg"), bbox_inches='tight')
     fig.close_all()
 
 
@@ -986,7 +987,7 @@ def detail(fig: C.FigProvider, p: DecimJournalEvaluation, resutls_path, name):
         {"color": MODEL_STYLES[1].color, "linestyle": '-', "alpha": 1., "label": MODEL_STYLES[1].label + "IM",
          "linewidth": 10},
     ])
-    plt.savefig(os.path.join(resutls_path, name + "detail_map_legend.pdf"), bbox_inches='tight')
+    plt.savefig(os.path.join(resutls_path, name + "detail_map_legend.jpg"), bbox_inches='tight')
 
 
 def _detail(fig: C.FigProvider, p: DecimJournalEvaluation,
@@ -1062,7 +1063,7 @@ def _detail(fig: C.FigProvider, p: DecimJournalEvaluation,
         axs[0][i].set_title(MODEL_STYLES[i].label + " IM")
     ##
 
-    plt.savefig(os.path.join(resutls_path, name + "models.png"), bbox_inches='tight')
+    plt.savefig(os.path.join(resutls_path, name + "models.jpg"), bbox_inches='tight')
     fig.close_all()
 
     """Sensory-wise general model selection"""
@@ -1218,7 +1219,7 @@ def _detail(fig: C.FigProvider, p: DecimJournalEvaluation,
     stage_f.set_xticks([event[0] for event in events])
     stage_f.set_xticklabels([event[1] for event in events], rotation=0, ha='center', minor=False)
 
-    plt.savefig(os.path.join(resutls_path, name + "intermodel_competition.png"), bbox_inches='tight')
+    plt.savefig(os.path.join(resutls_path, name + "intermodel_competition.jpg"), bbox_inches='tight')
     fig.close_all()
 
     """Gaits"""
@@ -1289,7 +1290,7 @@ def _detail(fig: C.FigProvider, p: DecimJournalEvaluation,
     cbar_ax = gait_fig.add_axes([0.85, 0.15, 0.05, 0.7])
     gait_fig.colorbar(matxs, cax=cbar_ax)
     ##
-    plt.savefig(os.path.join(resutls_path, name + "robot_gait.png"), bbox_inches='tight')
+    plt.savefig(os.path.join(resutls_path, name + "robot_gait.jpg"), bbox_inches='tight')
     fig.close_all()
 
     """Map"""
@@ -1349,7 +1350,7 @@ def _detail(fig: C.FigProvider, p: DecimJournalEvaluation,
     # axs[0][-1].legend(loc='upper left')
     ax.set_xlabel(LOCATION_LABELS[0])
     ax.set_ylabel(LOCATION_LABELS[1])
-    plt.savefig(os.path.join(resutls_path, name + "navigation_detail.png"), bbox_inches='tight')
+    plt.savefig(os.path.join(resutls_path, name + "navigation_detail.jpg"), bbox_inches='tight')
     fig.close_all()
 
     ##
@@ -1364,7 +1365,7 @@ def _detail(fig: C.FigProvider, p: DecimJournalEvaluation,
     #     {"color": MODEL_STYLES[1].color, "linestyle": '-', "alpha": 1., "label": MODEL_STYLES[1].label + "IM",
     #      "linewidth": 10},
     # ])
-    # plt.savefig(os.path.join(resutls_path, name + "detail_map_legend.png"), bbox_inches='tight')
+    # plt.savefig(os.path.join(resutls_path, name + "detail_map_legend.jpg"), bbox_inches='tight')
 
 def error_stats(pa: PortfolioAggregate[DecimJournalEvaluation], convolution_window=100):
     lifecycles = _get_ordered_lc_list(pa.lifecycle_range())

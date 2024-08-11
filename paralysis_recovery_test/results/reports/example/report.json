@@ -1,0 +1,36 @@
+{
+  "paralysis_recovery": [
+    [
+      "After paralysis starts at 175s, the robot recognizes new dynamics and trained new model at 440s, before the recovery at 1225s.",
+      true
+    ],
+    [
+      "After learning, the paralysis model was utilized more than half of the time: 1.00>0.5.",
+      true
+    ],
+    [
+      "After the recovery, the paralysis model was utilized less than half of the time: 0.20<0.5.",
+      true
+    ]
+  ],
+  "single_model": [
+    [
+      "Robot approaches the goal [-100 -100]. The reached location is [-23.7636528  -27.02405739]. Thus start distance 141.45m > final distance 105.53m",
+      true
+    ],
+    [
+      "During last 1/4 of the experiment, the robot approaches the goal each gait period. Minimal measured gait speed is 0.03 > 0.",
+      true
+    ],
+    [
+      "During last 1/2 of the experiment, the world-model:zero-model log-odds do not rapidly decrease. Average log-odds change is -0.00 > -0.01",
+      true
+    ]
+  ],
+  "walk_learning": [
+    [
+      "Expected 3 models learned during walk bootstrapping. 3 were trained.",
+      true
+    ]
+  ]
+}
