@@ -1,0 +1,3 @@
+import visuals.dataportfolio_view.decim_journal_evaluation
+import visuals.dataportfolio_view.detail_analysis
+import visuals.dataportfolio_view.longev_conference_evaluation

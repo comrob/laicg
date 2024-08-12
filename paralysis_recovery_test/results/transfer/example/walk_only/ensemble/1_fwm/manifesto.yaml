@@ -1,0 +1,14 @@
+annotation: WorldModel origin dir results/tmp/test/walk_learning/ensemble and ctx
+  3.
+degenerate_datasize_threshold: 10
+models:
+- StdNormedLinearRegressor
+- StdNormedLinearRegressor
+- StdNormedLinearRegressor
+- StdNormedLinearRegressor
+phase_number: 4
+timestamp: 1723311339.8958948
+transgait_window: 1
+u_dimension: 18
+version: 3
+y_dimension: 23
