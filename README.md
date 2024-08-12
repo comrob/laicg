@@ -54,7 +54,7 @@ The **eval** command generates files in *paralysis_recovery_test/results/reports
 2. Comparison of Walking and Paralysis internal models. The normalized parameters show the sensorimotor coupling strength. The Paralysis IM has low coupling strength for middle left (L2) and rear right (R3) legs.
    1. ![](paralysis_recovery_test/results/reports/example/paralysis_recovery/models.jpg)
 3. Expected results computed from recorded data.
-   1. ![](paralysis_recovery_test/results/reports/example/report.json)
+   1. ![report.json](paralysis_recovery_test/results/reports/example/report.json)
 
 #### References
 [1] R. Szadkowski and J. Faigl, Lifelong Active Inference of Gait Control (unpublished)
